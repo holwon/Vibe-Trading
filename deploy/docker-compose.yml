@@ -1,0 +1,71 @@
+# ============================================================================
+# Vibe-Trading — Production Docker Compose
+#
+# Uses the pre-built GHCR image instead of building from source.
+# Suitable for production/self-hosted deployments.
+#
+# Usage:
+#   cp ../agent/.env.example agent/.env   # or copy your existing .env
+#   docker compose up -d
+# ============================================================================
+
+services:
+  vibe-trading:
+    # Pull from GitHub Container Registry (built by .github/workflows/docker-build.yml)
+    image: ghcr.io/holwon/vibe-trading:latest
+    ports:
+      - "127.0.0.1:8899:8899"
+    env_file:
+      - ../agent/.env
+    environment:
+      - VIBE_TRADING_TRUST_DOCKER_LOOPBACK=1
+      - VIBE_TW_STOCK_DB=/data/tw-stock/latest.db
+      # Ollama runs on the host; from inside the container "localhost" is the
+      # container itself, so default to reaching the host via host.docker.internal.
+      # Override by exporting OLLAMA_BASE_URL (or setting it in a top-level .env)
+      # when Ollama runs elsewhere or on a different port.
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    extra_hosts:
+      # Maps host.docker.internal -> host gateway (needed on Linux; harmless on Docker Desktop).
+      # Requires Docker Engine >= 20.10 / Compose v2 (host-gateway support).
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - vibe-runs:/app/agent/runs
+      - vibe-sessions:/app/agent/sessions
+      # User-level agent state: persistent memory, cross-session search index
+      # (sessions.db), user-created skills, shadow accounts, hypothesis
+      # registry, broker connector config, agent.json. Without this volume a
+      # rebuild/recreate wipes it all.
+      - vibe-home:/home/vibe/.vibe-trading
+      - vibe-swarm-runs:/app/agent/.swarm/runs
+      - vibe-uploads:/app/agent/uploads
+      # Persist Web-UI-driven agent/.env edits across container recreation.
+      - ../agent/.env:/app/agent/.env
+      # Published Taiwan stock snapshots, mounted read-only. The default host
+      # path stays OUTSIDE the checkout: no market data may ever land in the
+      # working tree.
+      - ${VIBE_TW_STOCK_DATA_DIR:-${HOME}/.vibe-trading/tw-stock}:/data/tw-stock:ro
+    # --- Runtime hardening ---
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    security_opt:
+      - "no-new-privileges:true"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/vibe/.cache
+      - /home/vibe/.config
+    mem_limit: 4g
+    cpus: 2
+    pids_limit: 512
+    restart: unless-stopped
+
+volumes:
+  vibe-runs:
+  vibe-sessions:
+  vibe-home:
+  vibe-swarm-runs:
+  vibe-uploads:
