@@ -102,6 +102,11 @@ NOTES.md
 # Agent tool aliases (auto-generated mirror of CLAUDE.md)
 !AGENTS.md
 
+# Editor/MCP config caches (generated, not source)
+.codebase-memory/
+.cursor/
+.zed/
+
 .DS_Store
 
 # Desktop shell build outputs
