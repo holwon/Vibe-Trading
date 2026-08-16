@@ -65,7 +65,9 @@ data/parquet/
 data/backup/
 
 # Internal docs (plans, specs)
-docs/
+docs/*
+!docs/agents
+!docs/agents/**
 !wiki/docs/
 !wiki/docs/**
 docs/screenshots/agent-run.png
@@ -98,7 +100,7 @@ NOTES.md
 .workbuddy/
 
 # Agent tool aliases (auto-generated mirror of CLAUDE.md)
-AGENTS.md
+!AGENTS.md
 
 .DS_Store
 
